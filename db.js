@@ -3,14 +3,16 @@ require("dotenv").config();
 // Import required modules
 const mongoose = require('mongoose');
 const Url = require('./src/models/url.js'); // Adjust the path as needed
+const shortid = require('shortid'); // used for shortening url
 
 mongoose.connect(process.env.MONGODB_URI, {
     // useNewUrlParser: true,
     // useUnifiedTopology: true
 });
 
-const createAndSaveUrl = (url) => {
-    const newUrl = new Url({ original_url: url, short_url: "This is a short url"});
+const createAndSaveUrl = async (url) => {
+    const shortUrl = shortid.generate(); // generate a unique identifier
+    const newUrl = new Url({ original_url: url, short_url: shortUrl});
     newUrl.save()
     .then((doc) => {
         console.log('Saved document:', doc);
@@ -19,7 +21,7 @@ const createAndSaveUrl = (url) => {
     .catch((err) => {
         console.error('Error saving document:', err);
         disconnectFromDb();
-    })
+    });
 };
 
 const findUrl = (url) => {
