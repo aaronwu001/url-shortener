@@ -7,6 +7,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 const dns = require('dns');
 
+const db = require('./db.js');
+
 app.use(cors());
 
 var bodyParser = require("body-parser");
@@ -47,10 +49,43 @@ function verifyUrl (req, res, next) {
 };
 
 // mounting the middleware to where the POST request goes to
-app.post('/api/shorturl', verifyUrl);
+app.post('/api/shorturl', verifyUrl, async (req, res) => {
+  const url = req.body.url;
+  console.log('Received URL:', url);
 
-app.post('/api/shorturl', (req, res) => {
-  res.json({ original_url : req.body.url, short_url : "placeholder for a short url."});
+  try {
+    const jsonDoc = await db.findUrl(url);
+    if (jsonDoc) {
+      const { original_url, short_url } = jsonDoc;
+      console.log('Found document:', { original_url, short_url });
+      res.json({ original_url, short_url });
+    } else {
+      const savedUrl = await db.createAndSaveUrl(url);
+      const { original_url, short_url } = savedUrl;
+      console.log('Saved new URL:', { original_url, short_url });
+      res.json({ original_url, short_url });
+    }
+  } catch (err) {
+    console.error('Error handling the request:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/shorturl/:url', async (req, res) => {
+  const url = req.params.url;
+  try {
+    const jsonDoc = await db.findUrl(url);
+    if (jsonDoc) {
+      const { original_url, short_url } = jsonDoc;
+      console.log('Found document:', { original_url, short_url });
+      res.json({ original_url, short_url });
+    } else {
+      res.status(404).send('Not Found'); // 404 Not Found response with 'Not Found' message
+    }
+  } catch (err) {
+    console.error('Error handling the request:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.listen(port, function() {

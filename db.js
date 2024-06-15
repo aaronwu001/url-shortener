@@ -8,45 +8,50 @@ const shortid = require('shortid'); // used for shortening url
 mongoose.connect(process.env.MONGODB_URI, {
     // useNewUrlParser: true,
     // useUnifiedTopology: true
-});
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch((err) => console.error('Failed to connect to MongoDB', err));
 
 const createAndSaveUrl = async (url) => {
+
     const shortUrl = shortid.generate(); // generate a unique identifier
     const newUrl = new Url({ original_url: url, short_url: shortUrl});
-    newUrl.save()
-    .then((doc) => {
-        console.log('Saved document:', doc);
-        disconnectFromDb();
-    })
-    .catch((err) => {
+
+    try {
+        const savedUrl = await newUrl.save();
+        console.log('Saved document:', savedUrl);
+        return savedUrl.toJSON();
+    } catch (err) {
         console.error('Error saving document:', err);
-        disconnectFromDb();
-    });
+        throw err;
+    }
 };
 
-const findUrl = (url) => {
-    return Url.findOne({"original_url": url})
-    .then((doc) => {
+const findUrl = async (url) => {
+
+    try {
+        const doc = await Url.findOne({ original_url: url });
         if (doc) {
-            jsonDoc = doc.toJSON();
+            const jsonDoc = doc.toJSON();
             console.log('Document as JSON: ', jsonDoc);
-            disconnectFromDb();
             return jsonDoc;
         } else {
             console.log('No document found with the given short URL');
-            disconnectFromDb();
             return null;
         }
-    })
-}
+    } catch (err) {
+        console.error('Error finding document:', err);
+        throw err;
+    }
+};
 
-const disconnectFromDb = () => {
-    mongoose.disconnect()
-    .then(() => console.log('Disconnected from MongoDB.'))
-    .catch((err) => console.error('Error disconnecting from MongoDB:', err));
-}
+const disconnectFromDb = async () => {
+    try {
+        await mongoose.disconnect();
+        console.log('Disconnected from MongoDB.');
+    } catch (err) {
+        console.error('Error disconnecting from MongoDB:', err);
+    }
+};
 
-exports.createAndSaveUrl = createAndSaveUrl;
-exports.findUrl = findUrl;
-
-// createAndSaveURl(youtubeUrl);
+module.exports = { createAndSaveUrl, findUrl, disconnectFromDb };
