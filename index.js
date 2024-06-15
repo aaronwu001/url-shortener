@@ -78,7 +78,7 @@ app.get('/api/shorturl/:url', async (req, res) => {
     if (jsonDoc) {
       const { original_url, short_url } = jsonDoc;
       console.log('Found document:', { original_url, short_url });
-      res.json({ original_url, short_url });
+      res.redirect(original_url);
     } else {
       res.status(404).send('Not Found'); // 404 Not Found response with 'Not Found' message
     }
